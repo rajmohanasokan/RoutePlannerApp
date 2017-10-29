@@ -1,0 +1,23 @@
+/-------------------------------------------------------------------------
+/ Starter Code and GUI Application for Course 3 in the
+/ Java Programming: Object Oriented Design of 
+/ Data Structures Specialization:
+/
+/ Advanced Data Structures in Java
+/ https://www.coursera.org/learn/advanced-data-structures
+
+/
+/-------------------------------------------------------------------------
+
+---------------------------------------------------------[ DESCRIPTION ]--
+
+This repository contains the starter code for a route planning application.
+
+---------------------------------------------------------------[ SETUP ]-- 
+
+Importing Project into eclipse:
+	1. Create a new Java Project in your workspace
+	2. Import the starter files:
+	  File -> Import -> Select "File System" -> Next -> Browse and set 
+	  root directory to folder contents of zip were extracted to -> Finish
+
