@@ -122,7 +122,12 @@ public abstract class Graph {
 	 */
 	public List<Integer> degreeSequence() {
 		// XXX: Implement in part 1 of week 2
-		return null;
+		List<Integer> degSeq = new ArrayList<Integer>();
+		for(int i = 0; i < numVertices; i++){
+			degSeq.add(getNeighbors(i).size() + getInNeighbors(i).size());
+		}
+		Collections.sort(degSeq, Collections.reverseOrder());		
+		return degSeq;
 	}
 	
 	/**
@@ -251,7 +256,7 @@ public abstract class Graph {
 		
 		// You can test with real road data here.  Use the data files in data/maps
 		
-		System.out.println("Flight data:");
+		/*System.out.println("Flight data:");
 		GraphAdjList airportGraph = new GraphAdjList();
 		GraphLoader.loadRoutes("data/airports/routesUA.dat", airportGraph);
 		System.out.println(airportGraph);
@@ -261,7 +266,7 @@ public abstract class Graph {
 		//For testing Part 2 functionality
 		// Test your distance2 code here.
 		System.out.println("Testing distance-two methods on sample graphs...");
-		System.out.println("Goal: implement method using two approaches.");
+		System.out.println("Goal: implement method using two approaches.");*/
 
 
 		

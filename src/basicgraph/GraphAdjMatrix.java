@@ -1,6 +1,8 @@
 package basicgraph;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -105,7 +107,26 @@ public class GraphAdjMatrix extends Graph {
 	 */	
 	public List<Integer> getDistance2(int v) {
 		// XXX Implement this method in week 2
-		return null;
+		List<Integer> hopTwoVertices = new ArrayList<Integer>();
+		int[][] squareMatrix = getSquareMatrix();
+		for(int i = 0; i < getNumVertices(); i++){
+			if(squareMatrix[v][i] > 0){
+				hopTwoVertices.addAll(Collections.nCopies(squareMatrix[v][i], i));
+			}
+		}
+		return hopTwoVertices;
+	}
+	
+	private int[][] getSquareMatrix(){
+		int[][] squareMatrix = new int[getNumVertices()][getNumVertices()];
+		for(int i = 0; i < getNumVertices(); i++){
+			for(int j = 0; j < getNumVertices(); j++){
+				for(int k = 0; k < getNumVertices(); k++){
+					squareMatrix[i][j] += adjMatrix[i][k] * adjMatrix[k][j]; 
+				}
+			}
+		}
+		return squareMatrix;
 	}
 	
 	/**
