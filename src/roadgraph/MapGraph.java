@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -230,7 +231,40 @@ public class MapGraph {
 
 		// Hook for visualization.  See writeup.
 		//nodeSearched.accept(next.getLocation());
-		
+		Map<MapNode, MapNode> parent = new HashMap<MapNode, MapNode>();
+		//Maintain a set, visited, of type MapNode to track the MapNode objects that have been explored
+		Set<MapNode> visited = new HashSet<MapNode>();
+		MapNode startNode = locationNode.get(start);
+		startNode.setCost(0);
+		MapNode goalNode = locationNode.get(goal);		
+		Queue<MapNode> dkQueue = new PriorityQueue<MapNode>();
+		dkQueue.offer(startNode);
+		System.out.println("The following nodes were visited in Dijkstra");
+		while(!dkQueue.isEmpty()){
+			MapNode currNode = dkQueue.poll();
+			if(visited.contains(currNode)){
+				continue;
+			}
+			else{
+				nodeSearched.accept(currNode.getNode());
+				System.out.println(currNode.getNode().getX() + ", " + currNode.getNode().getY());
+				visited.add(currNode);
+			}
+			if(currNode == goalNode){
+				return constructPath(parent, goalNode, startNode);
+			}
+			else{
+				for(MapEdge edge : currNode.getNeighbors()){
+					double currLength = currNode.getCost() + edge.getLength();
+					MapNode destNode = edge.getEnd();
+					if(currLength < destNode.getCost()){
+						destNode.setCost(currLength);
+						dkQueue.offer(destNode);
+						parent.put(destNode, currNode);
+					}
+				}
+			}
+		}
 		return null;
 	}
 
@@ -263,6 +297,40 @@ public class MapGraph {
 		// Hook for visualization.  See writeup.
 		//nodeSearched.accept(next.getLocation());
 		
+		Map<MapNode, MapNode> parent = new HashMap<MapNode, MapNode>();
+		//Maintain a set, visited, of type MapNode to track the MapNode objects that have been explored
+		Set<MapNode> visited = new HashSet<MapNode>();
+		MapNode startNode = locationNode.get(start);
+		startNode.setCost(start.distance(goal));
+		MapNode goalNode = locationNode.get(goal);		
+		Queue<MapNode> dkQueue = new PriorityQueue<MapNode>();
+		dkQueue.offer(startNode);
+		System.out.println("The following nodes were visited in A*");
+		while(!dkQueue.isEmpty()){
+			MapNode currNode = dkQueue.poll();
+			if(visited.contains(currNode)){
+				continue;
+			}
+			else{
+				nodeSearched.accept(currNode.getNode());
+				System.out.println(currNode.getNode().getX() + ", " + currNode.getNode().getY());
+				visited.add(currNode);
+			}
+			if(currNode == goalNode){							
+				return constructPath(parent, goalNode, startNode);
+			}
+			else{
+				for(MapEdge edge : currNode.getNeighbors()){
+					MapNode destNode = edge.getEnd();
+					double currLength = currNode.getCost() - currNode.getNode().distance(goal) + edge.getLength() + destNode.getNode().distance(goal);					
+					if(currLength < destNode.getCost()){
+						destNode.setCost(currLength);
+						dkQueue.offer(destNode);
+						parent.put(destNode, currNode);
+					}
+				}
+			}
+		}
 		return null;
 	}
 
@@ -278,11 +346,18 @@ public class MapGraph {
 		GeographicPoint testEnd = new GeographicPoint(8.0, -1.0);
 		
 		System.out.println("Test 1 using simpletest: Dijkstra should be 9 and AStar should be 5");
-		List<GeographicPoint> testroute = firstMap.bfs(testStart,testEnd);
+		/*List<GeographicPoint> testroute = firstMap.aStarSearch(testStart, testEnd);
+		System.out.println("The route is as follows");
 		for(GeographicPoint location : testroute){
 			System.out.println(location.getX() + ", " + location.getY());
 		}
 		System.out.println("DONE.");
+		testroute.clear();*/
+		List<GeographicPoint> testroute = firstMap.dijkstra(testStart, testEnd);
+		System.out.println("The route is as follows");
+		for(GeographicPoint location : testroute){
+			System.out.println(location.getX() + ", " + location.getY());
+		}
 		
 		// You can use this method for testing.  
 		
