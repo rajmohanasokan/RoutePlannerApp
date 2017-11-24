@@ -32,6 +32,8 @@ public class RouteController {
 	public static final int BFS = 3;
     public static final int A_STAR = 2;
     public static final int DIJ = 1;
+    public static final int B_DIJ = 4;
+    public static final int B_A_STAR = 5;
 	public static final int DISABLE = 0;
 	public static final int START = 1;
 	public static final int DESTINATION = 2;
@@ -140,6 +142,14 @@ public class RouteController {
             }
             else if(group.getSelectedToggle().getUserData().equals("BFS")) {
             	selectedToggle = BFS;
+            }
+            else if(group.getSelectedToggle().getUserData().equals("Bidirectional-Dijkstra")) {
+//            	System.out.println("B-Dijkstra chosen");
+            	selectedToggle = B_DIJ;
+            }
+            else if(group.getSelectedToggle().getUserData().equals("Bidirectional-A*")) {
+//            	System.out.println("B-A* chosen");
+            	selectedToggle = B_A_STAR;
             }
             else {
             	System.err.println("Invalid radio button selection");

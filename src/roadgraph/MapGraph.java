@@ -34,10 +34,13 @@ public class MapGraph {
 	//TODO: Add your member variables here in WEEK 3
 	//Set of vertices in the graph
 	Set<GeographicPoint> vertices = null;
+	Set<GeographicPoint> reverseVertices = null;
 	//List of edges of type MapEdge
 	List<MapEdge> edges = null;
+	List<MapEdge> reverseEdges = null;
 	//A collection mapping geographic points to objects of type MapNode
 	Map<GeographicPoint, MapNode> locationNode = null;
+	Map<GeographicPoint, MapNode> reverseLocationNode = null;
 	
 	/** 
 	 * Create a new empty MapGraph 
@@ -46,8 +49,11 @@ public class MapGraph {
 	{
 		// TODO: Implement in this constructor in WEEK 3
 		vertices = new HashSet<GeographicPoint>();
+		reverseVertices = new HashSet<GeographicPoint>();
 		edges = new LinkedList<MapEdge>();
+		reverseEdges = new LinkedList<MapEdge>();
 		locationNode = new HashMap<GeographicPoint, MapNode>();
+		reverseLocationNode = new HashMap<GeographicPoint, MapNode>();
 	}
 	
 	/**
@@ -97,8 +103,10 @@ public class MapGraph {
 			vertices.add(location);
 			//Create a MapNode object, node, using the GeographicPoint object, location
 			MapNode node = new MapNode(location);
+			MapNode revNode = new MapNode(location);
 			//Map location to node
 			locationNode.put(location, node);
+			reverseLocationNode.put(location,  revNode);
 			return true;
 		}
 		return false;
@@ -133,6 +141,11 @@ public class MapGraph {
 		//Add edge as a neighbor in fromNode, so that fromNode can access toNode using this edge object
 		fromNode.addNeighbor(edge);
 		
+		MapNode revFromNode = reverseLocationNode.get(to);
+		MapNode revToNode = reverseLocationNode.get(from);
+		MapEdge revEdge = new MapEdge(revFromNode, revToNode, roadName, roadType, length);
+		reverseEdges.add(revEdge);
+		revFromNode.addNeighbor(revEdge);
 	}
 	
 
@@ -173,6 +186,7 @@ public class MapGraph {
 		bfsQueue.offer(startNode);
 		while(!bfsQueue.isEmpty()){
 			MapNode node = bfsQueue.poll();
+			nodeSearched.accept(node.getNode());
 			if(node == goalNode){
 				return constructPath(parent, goalNode, startNode);
 			}else{
@@ -216,6 +230,13 @@ public class MapGraph {
         return dijkstra(start, goal, temp);
 	}
 	
+	public List<GeographicPoint> bidijkstra(GeographicPoint start, GeographicPoint goal) {
+		// Dummy variable for calling the search algorithms
+		// You do not need to change this method.
+        Consumer<GeographicPoint> temp = (x) -> {};
+        return bidijkstra(start, goal, temp);
+	}
+	
 	/** Find the path from start to goal using Dijkstra's algorithm
 	 * 
 	 * @param start The starting location
@@ -224,23 +245,35 @@ public class MapGraph {
 	 * @return The list of intersections that form the shortest path from 
 	 *   start to goal (including both start and goal).
 	 */
-	public List<GeographicPoint> dijkstra(GeographicPoint start, 
+	public List<GeographicPoint> bidijkstra(GeographicPoint start, 
 										  GeographicPoint goal, Consumer<GeographicPoint> nodeSearched)
 	{
 		// TODO: Implement this method in WEEK 4
 
 		// Hook for visualization.  See writeup.
 		//nodeSearched.accept(next.getLocation());
+		Map<MapNode, Double> fwdDistance = new HashMap<MapNode, Double>();
+		Map<MapNode, Double> bwdDistance = new HashMap<MapNode, Double>();
+		
 		Map<MapNode, MapNode> parent = new HashMap<MapNode, MapNode>();
+		Map<MapNode, MapNode> reverseParent = new HashMap<MapNode, MapNode>();
 		//Maintain a set, visited, of type MapNode to track the MapNode objects that have been explored
 		Set<MapNode> visited = new HashSet<MapNode>();
+		Set<MapNode> revVisited = new HashSet<MapNode>();
 		MapNode startNode = locationNode.get(start);
-		startNode.setCost(0);
-		MapNode goalNode = locationNode.get(goal);		
+		MapNode revStartNode = reverseLocationNode.get(goal);
+		startNode.setCost(0.0);
+		fwdDistance.put(startNode, 0.0);
+		revStartNode.setCost(0.0);
+		bwdDistance.put(revStartNode, 0.0);
+//		MapNode goalNode = locationNode.get(goal);
+//		MapNode revGoalNode = reverseLocationNode.get(start);
 		Queue<MapNode> dkQueue = new PriorityQueue<MapNode>();
+		Queue<MapNode> revDkQueue = new PriorityQueue<MapNode>();
 		dkQueue.offer(startNode);
+		revDkQueue.offer(revStartNode);
 		System.out.println("The following nodes were visited in Dijkstra");
-		while(!dkQueue.isEmpty()){
+		do{
 			MapNode currNode = dkQueue.poll();
 			if(visited.contains(currNode)){
 				continue;
@@ -250,14 +283,127 @@ public class MapGraph {
 				System.out.println(currNode.getNode().getX() + ", " + currNode.getNode().getY());
 				visited.add(currNode);
 			}
-			if(currNode == goalNode){
-				return constructPath(parent, goalNode, startNode);
+			traverseEdgesOfCurrentNode(currNode, fwdDistance, parent, dkQueue);
+			if(revVisited.contains(reverseLocationNode.get(currNode.getNode()))){
+				return bidirectionalPath(parent, reverseParent, visited, revVisited, fwdDistance, bwdDistance, start, goal);
+			}
+			
+			// Reverse Dijkstra			
+			currNode = revDkQueue.poll();
+			if(revVisited.contains(currNode)){
+				continue;
 			}
 			else{
-				for(MapEdge edge : currNode.getNeighbors()){
+				nodeSearched.accept(currNode.getNode());
+				System.out.println(currNode.getNode().getX() + ", " + currNode.getNode().getY());
+				revVisited.add(currNode);
+			}
+			traverseEdgesOfCurrentNode(currNode, bwdDistance, reverseParent, revDkQueue);			
+			if(visited.contains(locationNode.get(currNode.getNode()))){
+				return bidirectionalPath(parent, reverseParent, visited, revVisited, fwdDistance, bwdDistance, start, goal);
+			}
+			
+		}while(true);
+	}
+	
+	private void traverseEdgesOfCurrentNode(MapNode currNode, Map<MapNode, Double> fwdDistance,
+			Map<MapNode, MapNode> parent, Queue<MapNode> dkQueue) {
+		// TODO Auto-generated method stub
+		for(MapEdge edge : currNode.getNeighbors()){
+			double currLength = currNode.getCost() + edge.getLength();
+			MapNode destNode = edge.getEnd();
+			if(currLength < destNode.getCost()){
+				destNode.setCost(currLength);
+				fwdDistance.put(destNode, currLength);
+				dkQueue.offer(destNode);
+				parent.put(destNode, currNode);
+			}
+		}
+	}
+
+	private List<GeographicPoint> bidirectionalPath(Map<MapNode, MapNode> parent, Map<MapNode, MapNode> reverseParent,
+			Set<MapNode> visited, Set<MapNode> revVisited, Map<MapNode, Double> fwdDistance,
+			Map<MapNode, Double> bwdDistance, GeographicPoint start, GeographicPoint goal) {
+		// TODO Auto-generated method stub		
+		MapNode bestNode = null;
+		List<GeographicPoint> path = new LinkedList<GeographicPoint>();
+		System.out.println("Entering path reconstruction");
+		bestNode = findMeetingNode(visited, fwdDistance, bwdDistance);		
+		if(bestNode != null){
+			MapNode tempNode = bestNode;
+			MapNode startNode = locationNode.get(start);
+			MapNode goalNode = reverseLocationNode.get(goal);			
+			//Start from goalNode, traverse through the map and reach the startNode, while also capturing the nodes in this traversal.			
+			reconstructPathFromBidirectionalDijkstra(parent, tempNode, startNode, path);					
+			Collections.reverse(path);
+			tempNode = reverseLocationNode.get(bestNode.getNode());
+			tempNode = reverseParent.get(tempNode);
+			reconstructPathFromBidirectionalDijkstra(reverseParent, tempNode, goalNode, path);			
+		}
+		return path;
+	}
+
+
+	private void reconstructPathFromBidirectionalDijkstra(Map<MapNode, MapNode> parent, MapNode tempNode,
+			MapNode targetNode, List<GeographicPoint> path) {
+		// TODO Auto-generated method stub
+		while(tempNode != targetNode){
+			path.add(tempNode.getNode());
+			tempNode = parent.get(tempNode);			
+		}
+		path.add(tempNode.getNode());
+	}
+
+	private MapNode findMeetingNode(Set<MapNode> visited, Map<MapNode, Double> fwdDistance,
+			Map<MapNode, Double> bwdDistance) {
+		// TODO Auto-generated method stub
+		Double bestDistance = Double.MAX_VALUE;
+		Double localDistance = 0.0;
+		MapNode bestNode = null;
+		for(MapNode node : visited){
+			MapNode revNode = reverseLocationNode.get(node.getNode());
+			localDistance = fwdDistance.get(node) + (bwdDistance.containsKey(revNode)?
+															bwdDistance.get(revNode) : Double.MAX_VALUE);
+			if(localDistance < bestDistance){
+				bestDistance = localDistance;
+				bestNode = node;
+			}
+		}
+		return bestNode;
+	}
+
+	public List<GeographicPoint> dijkstra(GeographicPoint start, GeographicPoint goal,
+			Consumer<GeographicPoint> nodeSearched) {
+		// TODO: Implement this method in WEEK 4
+
+		// Hook for visualization. See writeup.
+		// nodeSearched.accept(next.getLocation());
+		Map<MapNode, MapNode> parent = new HashMap<MapNode, MapNode>();
+		// Maintain a set, visited, of type MapNode to track the MapNode objects
+		// that have been explored
+		Set<MapNode> visited = new HashSet<MapNode>();
+		MapNode startNode = locationNode.get(start);
+		startNode.setCost(0);
+		MapNode goalNode = locationNode.get(goal);
+		Queue<MapNode> dkQueue = new PriorityQueue<MapNode>();
+		dkQueue.offer(startNode);
+		System.out.println("The following nodes were visited in Dijkstra");
+		while (!dkQueue.isEmpty()) {
+			MapNode currNode = dkQueue.poll();
+			if (visited.contains(currNode)) {
+				continue;
+			} else {
+				nodeSearched.accept(currNode.getNode());
+				System.out.println(currNode.getNode().getX() + ", " + currNode.getNode().getY());
+				visited.add(currNode);
+			}
+			if (currNode == goalNode) {
+				return constructPath(parent, goalNode, startNode);
+			} else {
+				for (MapEdge edge : currNode.getNeighbors()) {
 					double currLength = currNode.getCost() + edge.getLength();
 					MapNode destNode = edge.getEnd();
-					if(currLength < destNode.getCost()){
+					if (currLength < destNode.getCost()) {
 						destNode.setCost(currLength);
 						dkQueue.offer(destNode);
 						parent.put(destNode, currNode);
@@ -267,6 +413,7 @@ public class MapGraph {
 		}
 		return null;
 	}
+	
 
 	/** Find the path from start to goal using A-Star search
 	 * 
@@ -353,7 +500,7 @@ public class MapGraph {
 		}
 		System.out.println("DONE.");
 		testroute.clear();*/
-		List<GeographicPoint> testroute = firstMap.dijkstra(testStart, testEnd);
+		List<GeographicPoint> testroute = firstMap.bidijkstra(testStart, testEnd);
 		System.out.println("The route is as follows");
 		for(GeographicPoint location : testroute){
 			System.out.println(location.getX() + ", " + location.getY());
